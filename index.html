@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Display Opulent Hardware Feed</title>
+  <title>Opulent Hardware</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
@@ -41,9 +41,7 @@
       display:grid;gap:1rem;padding:1rem;width:min(1400px,100%);
       margin:0 auto;flex:1;
     }
-    #gallery.grid{
-      grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
-    }
+    #gallery.grid{grid-template-columns:repeat(auto-fill,minmax(210px,1fr));}
     #gallery.masonry{
       grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
       grid-auto-rows:10px;
@@ -51,10 +49,7 @@
     #gallery.feed{
       grid-template-columns:1fr;max-width:720px;
     }
-    #gallery.feed .card img{
-      height:auto;max-height:420px;object-fit:cover;
-    }
-
+    #gallery.feed .card img{height:auto;max-height:420px;object-fit:cover;}
     .card{
       background:var(--panel);border-radius:.75rem;
       border:1px solid rgba(255,255,255,.05);overflow:hidden;position:relative;
@@ -62,9 +57,7 @@
       display:flex;flex-direction:column;
     }
     .card-img-wrap{width:100%;overflow:hidden;}
-    .card img{
-      width:100%;display:block;background:#222;object-fit:cover;
-    }
+    .card img{width:100%;display:block;background:#222;object-fit:cover;}
     .meta{
       position:absolute;bottom:0;left:0;right:0;
       padding:.5rem .7rem;font-size:.65rem;color:#fff;
@@ -84,10 +77,9 @@
 </head>
 <body>
   <header>
-    <div class="title">Display Opulent Hardware Feed</div>
+    <div class="title">Opulent Hardware</div>
     <input id="searchInput" type="text" placeholder="Search (cars, nature, city…)" />
     <button id="searchBtn">Search</button>
-    <!-- brought back -->
     <button id="randomBtn">Random</button>
     <div class="layout-bar">
       <button class="layout-btn active" data-layout="grid">Grid</button>
@@ -197,7 +189,7 @@
       }
     }
 
-    // infinite scroll
+    // Infinite scroll
     window.addEventListener("scroll", () => {
       if (loading || reachedEnd) return;
       if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
@@ -210,7 +202,7 @@
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
 
-    // search
+    // Search
     searchBtn.addEventListener("click", () => {
       currentQuery = searchInput.value.trim();
       loadImages(true);
@@ -222,17 +214,16 @@
       }
     });
 
-    // random button — reset and start at random page
+    // Random button — reloads from a random Pexels page
     randomBtn.addEventListener("click", () => {
-      currentQuery = "";           // clear search so we get curated randomness
+      currentQuery = "";
       searchInput.value = "";
       const randomPage = getRandomPage();
       loadImages(true, randomPage);
-      // scroll top so user sees the new batch from start
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
 
-    // layout switch
+    // Layout toggle
     layoutBtns.forEach(btn => {
       btn.addEventListener("click", () => {
         layoutBtns.forEach(b => b.classList.remove("active"));
@@ -241,9 +232,7 @@
         gallery.className = layout;
         if (layout === "masonry") {
           gallery.querySelectorAll(".card").forEach(card => {
-            if (!card.style.gridRowEnd) {
-              card.style.gridRowEnd = "span 22";
-            }
+            if (!card.style.gridRowEnd) card.style.gridRowEnd = "span 22";
           });
         } else {
           gallery.querySelectorAll(".card").forEach(card => {
@@ -253,7 +242,7 @@
       });
     });
 
-    // initial
+    // Initial load
     loadImages(true);
   </script>
 </body>
