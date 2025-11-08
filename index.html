@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Image Feed — Pexels & Unsplash</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #0d1117;
+      --panel: #11141a;
+      --text: #e6edf3;
+      --accent: #b6ff3b;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .6rem .7rem;
+      border-bottom: 1px solid rgba(255,255,255,.03);
+      background: rgba(0,0,0,.15);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .title {
+      font-weight: 700;
+      margin-right: .75rem;
+      white-space: nowrap;
+    }
+    input[type="text"] {
+      flex: 1;
+      background: #050608;
+      border: 1px solid rgba(255,255,255,.03);
+      border-radius: .5rem;
+      padding: .4rem .6rem;
+      color: var(--text);
+    }
+    select {
+      background: #050608;
+      border: 1px solid rgba(255,255,255,.03);
+      color: var(--text);
+      border-radius: .5rem;
+      padding: .35rem .4rem;
+    }
+    button {
+      background: var(--accent);
+      border: none;
+      border-radius: .5rem;
+      padding: .4rem .7rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: #000;
+    }
+    #gallery {
+      padding: 1rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 1rem;
+      width: min(1400px, 100%);
+      margin: 0 auto;
+      box-sizing: border-box;
+      flex: 1;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,.02);
+      border-radius: .75rem;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 180px;
+    }
+    .card img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+      display: block;
+      background: #222;
+    }
+    .meta {
+      padding: .55rem .7rem .7rem;
+      font-size: .65rem;
+      opacity: .7;
+    }
+    .empty {
+      text-align: center;
+      opacity: .5;
+      grid-column: 1 / -1;
+    }
+    @media (max-width: 600px) {
+      header {
+        flex-wrap: wrap;
+      }
+      .title {
+        width: 100%;
+      }
+      input[type="text"] {
+        flex: 1 1 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title">Image Feed</div>
+    <select id="sourceSelect" title="Image Source">
+      <option value="all">All</option>
+      <option value="pexels">Pexels</option>
+      <option value="unsplash">Unsplash</option>
+    </select>
+    <input id="searchInput" type="text" placeholder="Search (e.g. cars, mountains, city)..." />
+    <button id="searchBtn">Search</button>
+    <button id="refreshBtn">Refresh</button>
+  </header>
+
+  <main id="gallery">
+    <p class="empty">Loading images…</p>
+  </main>
+
+  <script>
+    // =========================
+    // API KEYS
+    // =========================
+    // your Pexels key (you gave me this one)
+    const PEXELS_API_KEY = "cLI7nOS2SSYDzoN80qaW2PPuAmYMP2aKlYMoeKJhwdme53MXvKwUWaEL";
+    // put your Unsplash access key here
+    const UNSPLASH_ACCESS_KEY = "YOUR_UNSPLASH_ACCESS_KEY_HERE";
+
+    // =========================
+    // DOM ELEMENTS
+    // =========================
+    const gallery = document.getElementById("gallery");
+    const searchInput = document.getElementById("searchInput");
+    const searchBtn = document.getElementById("searchBtn");
+    const refreshBtn = document.getElementById("refreshBtn");
+    const sourceSelect = document.getElementById("sourceSelect");
+
+    // =========================
+    // FALLBACK IMAGES
+    // =========================
+    const FALLBACK = [
+      { thumb: "https://images.pexels.com/photos/248797/pexels-photo-248797.jpeg?w=600", author: "Pexels sample", link: "https://www.pexels.com/" },
+      { thumb: "https://images.pexels.com/photos/34950/pexels-photo.jpg?w=600", author: "Pexels sample", link: "https://www.pexels.com/" },
+      { thumb: "https://images.pexels.com/photos/210186/pexels-photo-210186.jpeg?w=600", author: "Pexels sample", link: "https://www.pexels.com/" },
+      { thumb: "https://images.pexels.com/photos/572897/pexels-photo-572897.jpeg?w=600", author: "Pexels sample", link: "https://www.pexels.com/" }
+    ];
+
+    // =========================
+    // FETCHERS
+    // =========================
+    async function fetchPexels(query) {
+      if (!PEXELS_API_KEY) return [];
+      const base = query
+        ? `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=18`
+        : `https://api.pexels.com/v1/curated?per_page=18`;
+
+      const res = await fetch(base, {
+        headers: { Authorization: PEXELS_API_KEY }
+      });
+
+      if (!res.ok) {
+        console.warn("Pexels error:", res.status);
+        return [];
+      }
+
+      const data = await res.json();
+      return (data.photos || []).map(p => ({
+        thumb: p.src.medium,
+        author: p.photographer,
+        link: p.url
+      }));
+    }
+
+    async function fetchUnsplash(query) {
+      if (!UNSPLASH_ACCESS_KEY || UNSPLASH_ACCESS_KEY.includes("YOUR_UNSPLASH_ACCESS_KEY_HERE")) {
+        // no key set
+        return [];
+      }
+
+      let url;
+      if (query) {
+        url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=18`;
+      } else {
+        url = `https://api.unsplash.com/photos?order_by=popular&per_page=18`;
+      }
+
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Client-ID ${UNSPLASH_ACCESS_KEY}`
+        }
+      });
+
+      if (!res.ok) {
+        console.warn("Unsplash error:", res.status);
+        return [];
+      }
+
+      const data = await res.json();
+
+      // when searching, Unsplash returns {results: [...]}
+      const list = Array.isArray(data) ? data : data.results;
+
+      return (list || []).map(item => ({
+        thumb: item.urls.small,
+        author: item.user?.name || "Unknown",
+        link: item.links?.html || "#"
+      }));
+    }
+
+    // =========================
+    // RENDER
+    // =========================
+    function renderImages(images, note) {
+      if (!images.length) {
+        gallery.innerHTML = `<p class="empty">No images found.</p>`;
+        return;
+      }
+      gallery.innerHTML = "";
+      if (note) {
+        const warn = document.createElement("p");
+        warn.className = "empty";
+        warn.textContent = note;
+        gallery.appendChild(warn);
+      }
+      images.forEach(img => {
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+          <a href="${img.link}" target="_blank" rel="noopener noreferrer">
+            <img src="${img.thumb}" alt="" loading="lazy" />
+          </a>
+          <div class="meta">by ${img.author}</div>
+        `;
+        gallery.appendChild(card);
+      });
+    }
+
+    // =========================
+    // LOAD LOGIC
+    // =========================
+    async function loadImages() {
+      const source = sourceSelect.value;
+      const query = searchInput.value.trim();
+      gallery.innerHTML = `<p class="empty">Loading images…</p>`;
+
+      try {
+        if (source === "pexels") {
+          const p = await fetchPexels(query);
+          renderImages(p.length ? p : FALLBACK, p.length ? "" : "Pexels empty — showing fallback.");
+        } else if (source === "unsplash") {
+          const u = await fetchUnsplash(query);
+          renderImages(u.length ? u : FALLBACK, u.length ? "" : "Unsplash empty or no key — showing fallback.");
+        } else {
+          // ALL — try both
+          const [pRes, uRes] = await Promise.allSettled([
+            fetchPexels(query),
+            fetchUnsplash(query)
+          ]);
+
+          const p = pRes.status === "fulfilled" ? pRes.value : [];
+          const u = uRes.status === "fulfilled" ? uRes.value : [];
+
+          let merged = [...p, ...u];
+
+          // shuffle so it's not ppppp uuuuu
+          merged = merged.sort(() => Math.random() - 0.5);
+
+          renderImages(
+            merged.length ? merged : FALLBACK,
+            merged.length ? "" : "No images from either source — showing fallback."
+          );
+        }
+      } catch (err) {
+        console.error(err);
+        renderImages(FALLBACK, "Error loading images — showing fallback.");
+      }
+    }
+
+    // =========================
+    // EVENTS
+    // =========================
+    searchBtn.addEventListener("click", loadImages);
+    refreshBtn.addEventListener("click", loadImages);
+    sourceSelect.addEventListener("change", loadImages);
+
+    // enter key triggers search
+    searchInput.addEventListener("keydown", e => {
+      if (e.key === "Enter") {
+        loadImages();
+      }
+    });
+
+    // initial load
+    loadImages();
+  </script>
+</body>
+</html>
