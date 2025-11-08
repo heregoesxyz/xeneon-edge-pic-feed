@@ -64,7 +64,10 @@
       max-width:720px;
     }
     #gallery.feed .card img{
-      height:auto;max-height:420px;object-fit:cover;
+      width:100%;
+      height:auto;
+      max-height:600px;
+      object-fit:cover;
     }
 
     /* MASONRY: real column-based layout */
@@ -127,7 +130,7 @@
       height: 120px;
       pointer-events: none;
       background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0) 100%);
-      z-index: 5; /* below the backToTop button */
+      z-index: 5; /* below back-to-top button */
     }
 
     /* Dark mode scrollbar styling */
@@ -200,8 +203,9 @@
       });
       if (!res.ok) throw new Error("Pexels error: " + res.status);
       const data = await res.json();
+      // use large (high-res) images for all modes
       return data.photos.map(p => ({
-        src: p.src.medium,
+        src: p.src.large,
         author: p.photographer,
         link: p.url
       }));
