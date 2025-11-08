@@ -45,7 +45,7 @@
       flex:1;
     }
 
-    /* GRID: classic, even cards */
+    /* GRID: uniform cards */
     #gallery.grid{
       display:grid;
       gap:1rem;
@@ -67,7 +67,7 @@
       height:auto;max-height:420px;object-fit:cover;
     }
 
-    /* MASONRY: column-based, dynamic fill */
+    /* MASONRY: real column-based layout */
     #gallery.masonry{
       column-count: 4;
       column-gap: 1rem;
@@ -90,7 +90,7 @@
       position:relative;
       animation:fadeIn .3s ease both;
     }
-    /* masonry needs cards to be inline-block so columns can wrap them */
+    /* masonry cards flow vertically */
     #gallery.masonry .card{
       display:inline-block;
       width:100%;
@@ -106,6 +106,7 @@
       background:linear-gradient(to top,rgba(0,0,0,.7),rgba(0,0,0,0));
       pointer-events:none;
     }
+
     .empty{text-align:center;opacity:.5;}
     #loading{text-align:center;padding:1rem;opacity:.6;font-size:.85rem;}
     @keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
@@ -114,6 +115,39 @@
       border:none;border-radius:.5rem;background:var(--accent);
       color:#000;font-weight:700;cursor:pointer;display:none;
       box-shadow:0 2px 8px rgba(0,0,0,.3);
+      z-index:20;
+    }
+
+    /* bottom fade overlay */
+    #fadeOverlay {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 120px;
+      pointer-events: none;
+      background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0) 100%);
+      z-index: 5; /* below the backToTop button */
+    }
+
+    /* Dark mode scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 10px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0a0d10;
+    }
+    ::-webkit-scrollbar-thumb {
+      background-color: #222831;
+      border-radius: 10px;
+      border: 2px solid #0a0d10;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background-color: #3a4048;
+    }
+    html {
+      scrollbar-color: #222831 #0a0d10;
+      scrollbar-width: thin;
     }
   </style>
 </head>
@@ -133,6 +167,7 @@
   <main id="gallery" class="grid"></main>
   <div id="loading" hidden>Loading more images…</div>
   <button id="backToTop">↑ Top</button>
+  <div id="fadeOverlay"></div>
 
   <script>
     const PEXELS_API_KEY = "cLI7nOS2SSYDzoN80qaW2PPuAmYMP2aKlYMoeKJhwdme53MXvKwUWaEL";
@@ -173,7 +208,6 @@
     }
 
     function appendImages(list) {
-      // in column-masonry we just append; browser does layout
       list.forEach(img => {
         const card = document.createElement("div");
         card.className = "card";
@@ -217,7 +251,7 @@
       }
     }
 
-    // infinite scroll
+    // Infinite scroll
     window.addEventListener("scroll", () => {
       if (loading || reachedEnd) return;
       if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
@@ -230,7 +264,7 @@
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
 
-    // search
+    // Search
     searchBtn.addEventListener("click", () => {
       currentQuery = searchInput.value.trim();
       loadImages(true);
@@ -242,14 +276,14 @@
       }
     });
 
-    // random — keep context
+    // Random — keep context
     randomBtn.addEventListener("click", () => {
       const randomPage = getRandomPage();
       loadImages(true, randomPage);
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
 
-    // layout toggle
+    // Layout toggle
     layoutBtns.forEach(btn => {
       btn.addEventListener("click", () => {
         layoutBtns.forEach(b => b.classList.remove("active"));
@@ -259,7 +293,7 @@
       });
     });
 
-    // initial load
+    // Initial load
     loadImages(true);
   </script>
 </body>
