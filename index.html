@@ -36,26 +36,53 @@
     .layout-btn.active{
       border-color:rgba(182,255,59,.6);background:rgba(182,255,59,.12);
     }
+
+    /* base gallery */
     #gallery{
       display:grid;gap:1rem;padding:1rem;width:min(1400px,100%);
       margin:0 auto;flex:1;
     }
-    #gallery.grid{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
-    #gallery.masonry{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
-    #gallery.feed{grid-template-columns:1fr;max-width:720px}
-    #gallery.feed .card img{height:auto;max-height:420px;object-fit:cover}
+
+    /* normal grid */
+    #gallery.grid{
+      grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
+    }
+
+    /* true-ish masonry: small row height so we can span */
+    #gallery.masonry{
+      grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
+      grid-auto-rows: 10px; /* base row unit */
+    }
+
+    /* feed: single column */
+    #gallery.feed{
+      grid-template-columns:1fr;max-width:720px;
+    }
+    #gallery.feed .card img{
+      height:auto;max-height:420px;object-fit:cover;
+      position:static;
+    }
+
     .card{
       background:var(--panel);border-radius:.75rem;
       border:1px solid rgba(255,255,255,.05);overflow:hidden;position:relative;
       animation:fadeIn .4s ease both;
+      display:flex;flex-direction:column;
+    }
+    /* image wrapper so we can let masonry control height */
+    .card-img-wrap{
+      width:100%;
+      overflow:hidden;
     }
     .card img{
-      width:100%;height:180px;object-fit:cover;display:block;background:#222;
+      width:100%;display:block;background:#222;
+      object-fit:cover;
     }
     .meta{
       position:absolute;bottom:0;left:0;right:0;
       padding:.5rem .7rem;font-size:.65rem;color:#fff;
       background:linear-gradient(to top,rgba(0,0,0,.7),rgba(0,0,0,0));
+      pointer-events:none;
     }
     .empty{text-align:center;opacity:.5;grid-column:1 / -1;}
     #loading{text-align:center;padding:1rem;opacity:.6;font-size:.85rem;}
@@ -110,22 +137,49 @@
       });
       if (!res.ok) throw new Error("Pexels error: " + res.status);
       const data = await res.json();
+      // keep width/height so we can size masonry
       return data.photos.map(p => ({
         src: p.src.medium,
         author: p.photographer,
-        link: p.url
+        link: p.url,
+        width: p.width,
+        height: p.height
       }));
     }
 
+    // calculate spans for masonry based on aspect ratio
+    function calcMasonrySpan(photo) {
+      // base rows are 10px; card has padding etc, so use rough multipliers
+      const ratio = photo.height / photo.width; // >1 = portrait
+      if (ratio > 1.3) return 35;     // tall portrait
+      if (ratio > 1.0) return 28;     // mild portrait
+      if (ratio < 0.75) return 16;    // wide landscape
+      return 22;                      // default
+    }
+
     function appendImages(list) {
+      const isMasonry = gallery.classList.contains("masonry");
+
       list.forEach(img => {
         const card = document.createElement("div");
         card.className = "card";
+
+        // inner
         card.innerHTML = `
-          <a href="${img.link}" target="_blank" rel="noopener">
-            <img src="${img.src}" loading="lazy" alt="" />
-          </a>
-          <div class="meta">by ${img.author}</div>`;
+          <div class="card-img-wrap">
+            <a href="${img.link}" target="_blank" rel="noopener">
+              <img src="${img.src}" loading="lazy" alt="" />
+            </a>
+          </div>
+          <div class="meta">by ${img.author}</div>
+        `;
+
+        // if masonry, set the row span
+        if (isMasonry) {
+          const span = calcMasonrySpan(img);
+          card.style.gridRowEnd = `span ${span}`;
+        }
+
         gallery.appendChild(card);
       });
     }
@@ -158,7 +212,7 @@
       }
     }
 
-    // Infinite scrolling
+    // infinite scroll
     window.addEventListener("scroll", () => {
       if (loading || reachedEnd) return;
       if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
@@ -171,7 +225,7 @@
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
 
-    // Search
+    // search
     searchBtn.addEventListener("click", () => {
       currentQuery = searchInput.value.trim();
       loadImages(true);
@@ -183,15 +237,31 @@
       }
     });
 
-    // Layout switcher
+    // layout switch
     layoutBtns.forEach(btn => {
       btn.addEventListener("click", () => {
         layoutBtns.forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
-        gallery.className = btn.dataset.layout;
+        const layout = btn.dataset.layout;
+        gallery.className = layout;
+
+        // if we switched to masonry, we need to reapply spans
+        if (layout === "masonry") {
+          // loop through existing cards and assign a default span
+          gallery.querySelectorAll(".card").forEach(card => {
+            // if we saved height on element, we could re-use; for simplicity, set a medium span
+            card.style.gridRowEnd = "span 22";
+          });
+        } else {
+          // clear inline span when leaving masonry
+          gallery.querySelectorAll(".card").forEach(card => {
+            card.style.gridRowEnd = "";
+          });
+        }
       });
     });
 
+    // initial
     loadImages(true);
   </script>
 </body>
