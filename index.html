@@ -74,7 +74,6 @@
       background: rgba(182,255,59,.12);
     }
 
-    /* base gallery */
     #gallery {
       padding: 1rem;
       width: min(1400px, 100%);
@@ -84,21 +83,15 @@
       display: grid;
       gap: 1rem;
     }
-
-    /* default grid */
     #gallery.grid {
       grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
     }
-
-    /* masonry-ish */
     #gallery.masonry {
       grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     }
     #gallery.masonry .card:nth-child(3n) img {
       height: 250px;
     }
-
-    /* feed: one per row */
     #gallery.feed {
       grid-template-columns: 1fr;
       max-width: 720px;
@@ -118,9 +111,6 @@
       flex-direction: column;
       min-height: 180px;
       position: relative;
-    }
-    .card a {
-      display: block;
     }
     .card img {
       width: 100%;
@@ -145,7 +135,6 @@
       text-align: center;
       opacity: .5;
       grid-column: 1 / -1;
-      position: static;
       background: none;
     }
   </style>
@@ -168,7 +157,6 @@
   </main>
 
   <script>
-    // your Pexels key
     const PEXELS_API_KEY = "cLI7nOS2SSYDzoN80qaW2PPuAmYMP2aKlYMoeKJhwdme53MXvKwUWaEL";
 
     const gallery = document.getElementById("gallery");
@@ -177,26 +165,26 @@
     const refreshBtn = document.getElementById("refreshBtn");
     const layoutButtons = document.querySelectorAll(".layout-btn");
 
-    // show something if API dies
     const FALLBACK = [
       { thumb: "https://images.pexels.com/photos/248797/pexels-photo-248797.jpeg?w=600", author: "Pexels sample", link: "https://www.pexels.com/" },
       { thumb: "https://images.pexels.com/photos/34950/pexels-photo.jpg?w=600", author: "Pexels sample", link: "https://www.pexels.com/" },
       { thumb: "https://images.pexels.com/photos/210186/pexels-photo-210186.jpeg?w=600", author: "Pexels sample", link: "https://www.pexels.com/" }
     ];
 
-    // helper: random page 1–20
+    // bigger range = more chance of different stuff
     function getRandomPage() {
-      return Math.floor(Math.random() * 20) + 1;
+      return Math.floor(Math.random() * 50) + 1; // 1–50
     }
 
     async function fetchPexels(query) {
       if (!PEXELS_API_KEY) return [];
       const page = getRandomPage();
-      const url = query
-        ? `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=18&page=${page}`
-        : `https://api.pexels.com/v1/curated?per_page=18&page=${page}`;
+      const cacheBust = Date.now();
+      const base = query
+        ? `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=18&page=${page}&_=${cacheBust}`
+        : `https://api.pexels.com/v1/curated?per_page=18&page=${page}&_=${cacheBust}`;
 
-      const res = await fetch(url, {
+      const res = await fetch(base, {
         headers: { Authorization: PEXELS_API_KEY }
       });
 
@@ -250,7 +238,6 @@
       }
     }
 
-    // layout switching
     layoutButtons.forEach(btn => {
       btn.addEventListener("click", () => {
         layoutButtons.forEach(b => b.classList.remove("active"));
@@ -266,7 +253,6 @@
       if (e.key === "Enter") loadImages();
     });
 
-    // initial load
     loadImages();
   </script>
 </body>
