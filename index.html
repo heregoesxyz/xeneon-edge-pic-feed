@@ -37,12 +37,18 @@
       border-color:rgba(182,255,59,.6);background:rgba(182,255,59,.12);
     }
 
+    /* base gallery container */
     #gallery{
-      display:grid;gap:1rem;padding:1rem;width:min(1400px,100%);
-      margin:0 auto;flex:1;
+      width:min(1400px,100%);
+      margin:0 auto;
+      padding:1rem;
+      flex:1;
     }
-    /* GRID: uniform */
+
+    /* GRID: classic, even cards */
     #gallery.grid{
+      display:grid;
+      gap:1rem;
       grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
     }
     #gallery.grid .card img{
@@ -50,26 +56,48 @@
       object-fit:cover;
     }
 
-    /* MASONRY: mixed */
-    #gallery.masonry{
-      grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
-      grid-auto-rows:10px;
-    }
-
     /* FEED: single column */
     #gallery.feed{
-      grid-template-columns:1fr;max-width:720px;
+      display:grid;
+      gap:1rem;
+      grid-template-columns:1fr;
+      max-width:720px;
     }
     #gallery.feed .card img{
       height:auto;max-height:420px;object-fit:cover;
     }
 
-    .card{
-      background:var(--panel);border-radius:.75rem;
-      border:1px solid rgba(255,255,255,.05);overflow:hidden;position:relative;
-      animation:fadeIn .4s ease both;
-      display:flex;flex-direction:column;
+    /* MASONRY: column-based, dynamic fill */
+    #gallery.masonry{
+      column-count: 4;
+      column-gap: 1rem;
     }
+    @media (max-width: 1100px){
+      #gallery.masonry{ column-count:3; }
+    }
+    @media (max-width: 800px){
+      #gallery.masonry{ column-count:2; }
+    }
+    @media (max-width: 520px){
+      #gallery.masonry{ column-count:1; }
+    }
+
+    .card{
+      background:var(--panel);
+      border-radius:.75rem;
+      border:1px solid rgba(255,255,255,.05);
+      overflow:hidden;
+      position:relative;
+      animation:fadeIn .3s ease both;
+    }
+    /* masonry needs cards to be inline-block so columns can wrap them */
+    #gallery.masonry .card{
+      display:inline-block;
+      width:100%;
+      margin:0 0 1rem;
+      break-inside: avoid;
+    }
+
     .card-img-wrap{width:100%;overflow:hidden;}
     .card img{width:100%;display:block;background:#222;}
     .meta{
@@ -78,9 +106,9 @@
       background:linear-gradient(to top,rgba(0,0,0,.7),rgba(0,0,0,0));
       pointer-events:none;
     }
-    .empty{text-align:center;opacity:.5;grid-column:1 / -1;}
+    .empty{text-align:center;opacity:.5;}
     #loading{text-align:center;padding:1rem;opacity:.6;font-size:.85rem;}
-    @keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
     #backToTop{
       position:fixed;bottom:20px;right:20px;padding:.6rem .8rem;
       border:none;border-radius:.5rem;background:var(--accent);
@@ -140,22 +168,12 @@
       return data.photos.map(p => ({
         src: p.src.medium,
         author: p.photographer,
-        link: p.url,
-        width: p.width,
-        height: p.height
+        link: p.url
       }));
     }
 
-    function calcMasonrySpan(photo) {
-      const ratio = photo.height / photo.width;
-      if (ratio > 1.3) return 35;
-      if (ratio > 1.0) return 28;
-      if (ratio < 0.75) return 16;
-      return 22;
-    }
-
     function appendImages(list) {
-      const isMasonry = gallery.classList.contains("masonry");
+      // in column-masonry we just append; browser does layout
       list.forEach(img => {
         const card = document.createElement("div");
         card.className = "card";
@@ -167,10 +185,6 @@
           </div>
           <div class="meta">by ${img.author}</div>
         `;
-        if (isMasonry) {
-          const span = calcMasonrySpan(img);
-          card.style.gridRowEnd = `span ${span}`;
-        }
         gallery.appendChild(card);
       });
     }
@@ -228,10 +242,9 @@
       }
     });
 
-    // RANDOM — now preserves currentQuery and input
+    // random — keep context
     randomBtn.addEventListener("click", () => {
       const randomPage = getRandomPage();
-      // do NOT clear currentQuery or searchInput.value
       loadImages(true, randomPage);
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
@@ -243,16 +256,6 @@
         btn.classList.add("active");
         const layout = btn.dataset.layout;
         gallery.className = layout;
-
-        if (layout === "masonry") {
-          gallery.querySelectorAll(".card").forEach(card => {
-            if (!card.style.gridRowEnd) card.style.gridRowEnd = "span 22";
-          });
-        } else {
-          gallery.querySelectorAll(".card").forEach(card => {
-            card.style.gridRowEnd = "";
-          });
-        }
       });
     });
 
