@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Opulent Hardware Feed</title>
+  <title>Display Opulent Hardware Feed</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
@@ -37,30 +37,22 @@
       border-color:rgba(182,255,59,.6);background:rgba(182,255,59,.12);
     }
 
-    /* base gallery */
     #gallery{
       display:grid;gap:1rem;padding:1rem;width:min(1400px,100%);
       margin:0 auto;flex:1;
     }
-
-    /* normal grid */
     #gallery.grid{
       grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
     }
-
-    /* true-ish masonry: small row height so we can span */
     #gallery.masonry{
       grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
-      grid-auto-rows: 10px; /* base row unit */
+      grid-auto-rows:10px;
     }
-
-    /* feed: single column */
     #gallery.feed{
       grid-template-columns:1fr;max-width:720px;
     }
     #gallery.feed .card img{
       height:auto;max-height:420px;object-fit:cover;
-      position:static;
     }
 
     .card{
@@ -69,14 +61,9 @@
       animation:fadeIn .4s ease both;
       display:flex;flex-direction:column;
     }
-    /* image wrapper so we can let masonry control height */
-    .card-img-wrap{
-      width:100%;
-      overflow:hidden;
-    }
+    .card-img-wrap{width:100%;overflow:hidden;}
     .card img{
-      width:100%;display:block;background:#222;
-      object-fit:cover;
+      width:100%;display:block;background:#222;object-fit:cover;
     }
     .meta{
       position:absolute;bottom:0;left:0;right:0;
@@ -97,9 +84,11 @@
 </head>
 <body>
   <header>
-    <div class="title">Opulent Hardware Feed</div>
+    <div class="title">Display Opulent Hardware Feed</div>
     <input id="searchInput" type="text" placeholder="Search (cars, nature, city…)" />
     <button id="searchBtn">Search</button>
+    <!-- brought back -->
+    <button id="randomBtn">Random</button>
     <div class="layout-bar">
       <button class="layout-btn active" data-layout="grid">Grid</button>
       <button class="layout-btn" data-layout="masonry">Masonry</button>
@@ -118,6 +107,7 @@
     const loadingEl = document.getElementById("loading");
     const searchInput = document.getElementById("searchInput");
     const searchBtn = document.getElementById("searchBtn");
+    const randomBtn = document.getElementById("randomBtn");
     const layoutBtns = document.querySelectorAll(".layout-btn");
     const backBtn = document.getElementById("backToTop");
 
@@ -125,6 +115,10 @@
     let currentQuery = "";
     let loading = false;
     let reachedEnd = false;
+
+    function getRandomPage() {
+      return Math.floor(Math.random() * 50) + 1;
+    }
 
     async function fetchPexels(page = 1, query = "") {
       const cacheBust = Date.now();
@@ -137,7 +131,6 @@
       });
       if (!res.ok) throw new Error("Pexels error: " + res.status);
       const data = await res.json();
-      // keep width/height so we can size masonry
       return data.photos.map(p => ({
         src: p.src.medium,
         author: p.photographer,
@@ -147,24 +140,19 @@
       }));
     }
 
-    // calculate spans for masonry based on aspect ratio
     function calcMasonrySpan(photo) {
-      // base rows are 10px; card has padding etc, so use rough multipliers
-      const ratio = photo.height / photo.width; // >1 = portrait
-      if (ratio > 1.3) return 35;     // tall portrait
-      if (ratio > 1.0) return 28;     // mild portrait
-      if (ratio < 0.75) return 16;    // wide landscape
-      return 22;                      // default
+      const ratio = photo.height / photo.width;
+      if (ratio > 1.3) return 35;
+      if (ratio > 1.0) return 28;
+      if (ratio < 0.75) return 16;
+      return 22;
     }
 
     function appendImages(list) {
       const isMasonry = gallery.classList.contains("masonry");
-
       list.forEach(img => {
         const card = document.createElement("div");
         card.className = "card";
-
-        // inner
         card.innerHTML = `
           <div class="card-img-wrap">
             <a href="${img.link}" target="_blank" rel="noopener">
@@ -173,27 +161,24 @@
           </div>
           <div class="meta">by ${img.author}</div>
         `;
-
-        // if masonry, set the row span
         if (isMasonry) {
           const span = calcMasonrySpan(img);
           card.style.gridRowEnd = `span ${span}`;
         }
-
         gallery.appendChild(card);
       });
     }
 
-    async function loadImages(reset = false) {
+    async function loadImages(reset = false, startPage = null) {
       if (loading || reachedEnd) return;
       loading = true;
       loadingEl.hidden = false;
 
       try {
         if (reset) {
-          currentPage = 1;
           gallery.innerHTML = "";
           reachedEnd = false;
+          currentPage = startPage !== null ? startPage : 1;
         }
         const imgs = await fetchPexels(currentPage, currentQuery);
         if (imgs.length === 0) {
@@ -237,6 +222,16 @@
       }
     });
 
+    // random button — reset and start at random page
+    randomBtn.addEventListener("click", () => {
+      currentQuery = "";           // clear search so we get curated randomness
+      searchInput.value = "";
+      const randomPage = getRandomPage();
+      loadImages(true, randomPage);
+      // scroll top so user sees the new batch from start
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
     // layout switch
     layoutBtns.forEach(btn => {
       btn.addEventListener("click", () => {
@@ -244,16 +239,13 @@
         btn.classList.add("active");
         const layout = btn.dataset.layout;
         gallery.className = layout;
-
-        // if we switched to masonry, we need to reapply spans
         if (layout === "masonry") {
-          // loop through existing cards and assign a default span
           gallery.querySelectorAll(".card").forEach(card => {
-            // if we saved height on element, we could re-use; for simplicity, set a medium span
-            card.style.gridRowEnd = "span 22";
+            if (!card.style.gridRowEnd) {
+              card.style.gridRowEnd = "span 22";
+            }
           });
         } else {
-          // clear inline span when leaving masonry
           gallery.querySelectorAll(".card").forEach(card => {
             card.style.gridRowEnd = "";
           });
